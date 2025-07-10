@@ -679,9 +679,352 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Initialize all new functionality
+// Enhanced Mobile Responsiveness and Touch Interactions
+
+// Mobile device detection
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+}
+
+// Touch event handlers for better mobile experience
+function addTouchInteractions() {
+    // Enhanced mobile navigation
+    const hamburger = document.getElementById('hamburger');
+    const navMenu = document.getElementById('nav-menu');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
+            hamburger.classList.remove('active');
+            navMenu.classList.remove('active');
+        }
+    });
+
+    // Touch gestures for mobile navigation
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleGesture();
+    });
+
+    function handleGesture() {
+        const swipeThreshold = 50;
+        const deltaX = touchEndX - touchStartX;
+
+        // Swipe right to open menu (when near left edge)
+        if (deltaX > swipeThreshold && touchStartX < 50 && !navMenu.classList.contains('active')) {
+            hamburger.classList.add('active');
+            navMenu.classList.add('active');
+        }
+        // Swipe left to close menu
+        else if (deltaX < -swipeThreshold && navMenu.classList.contains('active')) {
+            hamburger.classList.remove('active');
+            navMenu.classList.remove('active');
+        }
+    }
+
+    // Enhanced scroll behavior for mobile
+    let isScrolling = false;
+    window.addEventListener('scroll', () => {
+        if (!isScrolling) {
+            window.requestAnimationFrame(() => {
+                updateNavbarOnScroll();
+                updateActiveNavLinks();
+                isScrolling = false;
+            });
+            isScrolling = true;
+        }
+    });
+}
+
+// Optimized scroll functions
+function updateNavbarOnScroll() {
+    const navbar = document.getElementById('navbar');
+    if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+    } else {
+        navbar.classList.remove('scrolled');
+    }
+}
+
+function updateActiveNavLinks() {
+    let current = '';
+    const sections = document.querySelectorAll('section');
+    
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (pageYOffset >= (sectionTop - 200)) {
+            current = section.getAttribute('id');
+        }
+    });
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${current}`) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// Responsive image loading with lazy loading
+function initLazyLoading() {
+    const images = document.querySelectorAll('img[data-src]');
+    
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src;
+                img.classList.remove('lazy');
+                observer.unobserve(img);
+            }
+        });
+    });
+
+    images.forEach(img => imageObserver.observe(img));
+}
+
+// Device orientation change handler
+function handleOrientationChange() {
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            // Recalculate viewport height for mobile
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // Close mobile menu on orientation change
+            const hamburger = document.getElementById('hamburger');
+            const navMenu = document.getElementById('nav-menu');
+            hamburger.classList.remove('active');
+            navMenu.classList.remove('active');
+            
+            // Trigger resize event for other components
+            window.dispatchEvent(new Event('resize'));
+        }, 500); // Delay to ensure orientation change is complete
+    });
+}
+
+// Viewport height fix for mobile browsers
+function setViewportHeight() {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+    
+    window.addEventListener('resize', () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    });
+}
+
+// Performance optimizations for mobile
+function optimizeForMobile() {
+    if (isMobileDevice()) {
+        // Reduce animation complexity on mobile
+        document.body.classList.add('mobile-device');
+        
+        // Disable hover effects on mobile
+        const style = document.createElement('style');
+        style.textContent = `
+            @media (hover: none) {
+                .project-card:hover,
+                .social-link:hover,
+                .btn:hover {
+                    transform: none !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Use passive event listeners for better scroll performance
+        document.addEventListener('touchstart', () => {}, { passive: true });
+        document.addEventListener('touchmove', () => {}, { passive: true });
+    }
+}
+
+// Enhanced form validation for mobile
+function enhanceFormValidation() {
+    const form = document.getElementById('contactForm');
+    const inputs = form.querySelectorAll('input, textarea');
+    
+    inputs.forEach(input => {
+        // Add real-time validation
+        input.addEventListener('blur', () => validateField(input));
+        input.addEventListener('input', () => clearFieldError(input));
+    });
+    
+    function validateField(field) {
+        const value = field.value.trim();
+        const fieldName = field.name;
+        let isValid = true;
+        let errorMessage = '';
+        
+        // Remove existing error
+        clearFieldError(field);
+        
+        // Field-specific validation
+        switch (fieldName) {
+            case 'name':
+                if (!value) {
+                    errorMessage = 'Name is required';
+                    isValid = false;
+                } else if (value.length < 2) {
+                    errorMessage = 'Name must be at least 2 characters';
+                    isValid = false;
+                }
+                break;
+            case 'email':
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!value) {
+                    errorMessage = 'Email is required';
+                    isValid = false;
+                } else if (!emailRegex.test(value)) {
+                    errorMessage = 'Please enter a valid email';
+                    isValid = false;
+                }
+                break;
+            case 'subject':
+                if (!value) {
+                    errorMessage = 'Subject is required';
+                    isValid = false;
+                }
+                break;
+            case 'message':
+                if (!value) {
+                    errorMessage = 'Message is required';
+                    isValid = false;
+                } else if (value.length < 10) {
+                    errorMessage = 'Message must be at least 10 characters';
+                    isValid = false;
+                }
+                break;
+        }
+        
+        if (!isValid) {
+            showFieldError(field, errorMessage);
+        }
+        
+        return isValid;
+    }
+    
+    function showFieldError(field, message) {
+        field.classList.add('error');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'field-error';
+        errorDiv.textContent = message;
+        errorDiv.style.cssText = `
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            animation: slideDown 0.3s ease;
+        `;
+        field.parentNode.appendChild(errorDiv);
+    }
+    
+    function clearFieldError(field) {
+        field.classList.remove('error');
+        const existingError = field.parentNode.querySelector('.field-error');
+        if (existingError) {
+            existingError.remove();
+        }
+    }
+}
+
+// Improved intersection observer for better performance
+function createOptimizedIntersectionObserver() {
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '50px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                // Add animation class
+                entry.target.classList.add('animate-in');
+                
+                // Add stagger effect for grid items
+                if (entry.target.parentNode.classList.contains('projects-grid') ||
+                    entry.target.parentNode.classList.contains('skills-grid') ||
+                    entry.target.parentNode.classList.contains('focus-grid')) {
+                    const index = Array.from(entry.target.parentNode.children).indexOf(entry.target);
+                    entry.target.style.animationDelay = `${index * 0.1}s`;
+                }
+                
+                // Unobserve after animation
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    return observer;
+}
+
+// Smooth scrolling with mobile optimization
+function initSmoothScrolling() {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                const headerOffset = 70; // Account for fixed navbar
+                const elementPosition = target.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+                
+                // Close mobile menu after navigation
+                const hamburger = document.getElementById('hamburger');
+                const navMenu = document.getElementById('nav-menu');
+                hamburger.classList.remove('active');
+                navMenu.classList.remove('active');
+            }
+        });
+    });
+}
+
+// Initialize all mobile enhancements
 document.addEventListener('DOMContentLoaded', () => {
-    initializeNewSections();
-    addBlogInteractions();
-    rotateQuotes();
+    setViewportHeight();
+    handleOrientationChange();
+    addTouchInteractions();
+    optimizeForMobile();
+    enhanceFormValidation();
+    initLazyLoading();
+    initSmoothScrolling();
+    
+    // Initialize optimized intersection observer
+    const observer = createOptimizedIntersectionObserver();
+    const animateElements = document.querySelectorAll('.section-header, .about-text, .education-item, .skill-category, .project-card, .contact-item, .contact-form, .stat, .focus-card, .philosophy-point');
+    animateElements.forEach(el => observer.observe(el));
+    
+    console.log('Mobile enhancements initialized');
 });
+
+// Performance monitoring for mobile
+function logPerformanceMetrics() {
+    if ('performance' in window) {
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const navigation = performance.getEntriesByType('navigation')[0];
+                console.log('Page load time:', navigation.loadEventEnd - navigation.loadEventStart, 'ms');
+                
+                // Log any performance issues
+                if (navigation.loadEventEnd - navigation.loadEventStart > 3000) {
+                    console.warn('Slow page load detected. Consider optimizing resources.');
+                }
+            }, 0);
+        });
+    }
+}
+
+// Initialize performance monitoring
+logPerformanceMetrics();
